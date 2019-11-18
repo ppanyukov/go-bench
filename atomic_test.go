@@ -104,7 +104,7 @@ func loopLocal(loopCount int, totalCounter *int64) int64 {
 	return localCounter
 }
 
-// loopLocal increments local counter. It uses atomic primitives to increment total counter.
+// loopAtomic increments local counter. It uses atomic primitives to increment total counter.
 func loopAtomic(loopCount int, totalCounter *int64) int64 {
 	var random = newRand()
 	var localCounter = int64(0)
