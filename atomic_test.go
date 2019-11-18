@@ -135,9 +135,9 @@ func BenchmarkLoop(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		wg := sync.WaitGroup{}
 		routineCount := routineCount()
+		totalCounter := int64(0)
 		for r := 0; r < routineCount; r++ {
 			wg.Add(1)
-			totalCounter := int64(0)
 			go func() {
 				defer wg.Done()
 				loopLocal(array, &totalCounter)
@@ -151,9 +151,9 @@ func BenchmarkLoopAtomic(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		wg := sync.WaitGroup{}
 		routineCount := routineCount()
+		totalCounter := int64(0)
 		for r := 0; r < routineCount; r++ {
 			wg.Add(1)
-			totalCounter := int64(0)
 			go func() {
 				defer wg.Done()
 				loopAtomic(array, &totalCounter)
