@@ -1,3 +1,5 @@
+// go test -bench=. -cpu="1,2,4,8,16,64,128"
+
 /*
 These set of benchmarks are aimed to test the cost of accessing
 shared pointers. There are three tests:
@@ -20,28 +22,28 @@ Results on my local MBP (8x core i9 CPU, hyper-threaded)
 	goos: darwin
 	goarch: amd64
 	pkg: github.com/ppanyukov/go-bench
-	BenchmarkLoopNoPtr        	    1617	   7278949 ns/op
-	BenchmarkLoopNoPtr-2      	    1564	   7699908 ns/op
-	BenchmarkLoopNoPtr-4      	    1484	   8940401 ns/op
-	BenchmarkLoopNoPtr-8      	    1238	  10630713 ns/op
-	BenchmarkLoopNoPtr-16     	     603	  20165222 ns/op
-	BenchmarkLoopNoPtr-24     	     400	  29864253 ns/op
+	BenchmarkLoopNoPtr        	   25954	    464182 ns/op
+	BenchmarkLoopNoPtr-2      	   23108	    522946 ns/op
+	BenchmarkLoopNoPtr-4      	   18465	    669737 ns/op
+	BenchmarkLoopNoPtr-8      	   13980	    871386 ns/op
+	BenchmarkLoopNoPtr-16     	    8292	   1516591 ns/op
+	BenchmarkLoopNoPtr-24     	    5558	   2237993 ns/op
 
-	BenchmarkLoop             	    1297	   8095006 ns/op
-	BenchmarkLoop-2           	     462	  26689070 ns/op
-	BenchmarkLoop-4           	     193	  61540155 ns/op
-	BenchmarkLoop-8           	     100	 111132392 ns/op
-	BenchmarkLoop-16          	      80	 144831500 ns/op
-	BenchmarkLoop-24          	      61	 178581242 ns/op
+	BenchmarkLoop             	    7165	   1430208 ns/op
+	BenchmarkLoop-2           	    6310	   1857615 ns/op
+	BenchmarkLoop-4           	    5374	   2331765 ns/op
+	BenchmarkLoop-8           	    3256	   3696851 ns/op
+	BenchmarkLoop-16          	    1819	   6774960 ns/op
+	BenchmarkLoop-24          	    1380	   9080867 ns/op
 
-	BenchmarkLoopAtomic       	    1098	   9719518 ns/op
-	BenchmarkLoopAtomic-2     	     345	  37010750 ns/op
-	BenchmarkLoopAtomic-4     	     175	  68657897 ns/op
-	BenchmarkLoopAtomic-8     	      98	 121333444 ns/op
-	BenchmarkLoopAtomic-16    	      70	 181610799 ns/op
-	BenchmarkLoopAtomic-24    	      55	 219883166 ns/op
+	BenchmarkLoopAtomic       	    1929	   5865269 ns/op
+	BenchmarkLoopAtomic-2     	     348	  32108845 ns/op
+	BenchmarkLoopAtomic-4     	     190	  63751175 ns/op
+	BenchmarkLoopAtomic-8     	     100	 111437548 ns/op
+	BenchmarkLoopAtomic-16    	      84	 166631953 ns/op
+	BenchmarkLoopAtomic-24    	      55	 209213433 ns/op
 	PASS
-	ok  	github.com/ppanyukov/go-bench	253.595s
+	ok  	github.com/ppanyukov/go-bench	265.088s
 
 These show rapid degradation in performance when shared pointers get modified.
 
@@ -50,7 +52,6 @@ package go_bench
 
 import (
 	"math"
-	"math/rand"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -62,25 +63,22 @@ func routineCount() int {
 	return res
 }
 
-var loopCount = 1000000
-
-func newRand() *rand.Rand {
-	return rand.New(rand.NewSource(443))
-}
+var array = func() []int64 {
+	const loopCount = 1000000
+	res := make([]int64, loopCount, loopCount)
+	for i := int64(0); i < loopCount; i++ {
+		res[i] = i
+	}
+	return res
+}()
 
 // loopLocalNoPtr increments local counter and the total counter without using atomic primitives.
 // It increments total counter by taking a local copy first, and adding to it in the end.
-func loopLocalNoPtr(loopCount int, totalCounter *int64) int64 {
-	var random = newRand()
+func loopLocalNoPtr(array []int64, _ *int64) int64 {
 	var localCounter = int64(0)
-	var totalCounterCopy = int64(0)
-	defer func() {
-		*totalCounter += totalCounterCopy
-	}()
-	for i := 0; i <= loopCount; i++ {
-		localCounter += random.Int63()
-		totalCounterCopy += random.Int63()
-		if localCounter > math.MaxInt64 || totalCounterCopy > math.MaxInt64 {
+	for _, val := range array {
+		localCounter += val
+		if localCounter > math.MaxInt64 {
 			return localCounter
 		}
 	}
@@ -90,12 +88,11 @@ func loopLocalNoPtr(loopCount int, totalCounter *int64) int64 {
 
 // loopLocal increments local counter and the total counter without using atomic primitives.
 // It increments total counter directly using pointer dereference.
-func loopLocal(loopCount int, totalCounter *int64) int64 {
-	var random = newRand()
+func loopLocal(array []int64, totalCounter *int64) int64 {
 	var localCounter = int64(0)
-	for i := 0; i <= loopCount; i++ {
-		localCounter += random.Int63()
-		*totalCounter += random.Int63()
+	for _, val := range array {
+		localCounter += val
+		*totalCounter += val
 		if localCounter > math.MaxInt64 || *totalCounter > math.MaxInt64 {
 			return localCounter
 		}
@@ -105,12 +102,11 @@ func loopLocal(loopCount int, totalCounter *int64) int64 {
 }
 
 // loopAtomic increments local counter. It uses atomic primitives to increment total counter.
-func loopAtomic(loopCount int, totalCounter *int64) int64 {
-	var random = newRand()
+func loopAtomic(array []int64, totalCounter *int64) int64 {
 	var localCounter = int64(0)
-	for i := 0; i <= loopCount; i++ {
-		localCounter += random.Int63()
-		totalCounterNew := atomic.AddInt64(totalCounter, random.Int63())
+	for _, val := range array {
+		localCounter += val
+		totalCounterNew := atomic.AddInt64(totalCounter, val)
 		if localCounter > math.MaxInt64 || totalCounterNew > math.MaxInt64 {
 			return localCounter
 		}
@@ -128,7 +124,7 @@ func BenchmarkLoopNoPtr(b *testing.B) {
 			totalCounter := int64(0)
 			go func() {
 				defer wg.Done()
-				loopLocalNoPtr(loopCount, &totalCounter)
+				loopLocalNoPtr(array, &totalCounter)
 			}()
 		}
 		wg.Wait()
@@ -144,7 +140,7 @@ func BenchmarkLoop(b *testing.B) {
 			totalCounter := int64(0)
 			go func() {
 				defer wg.Done()
-				loopLocal(loopCount, &totalCounter)
+				loopLocal(array, &totalCounter)
 			}()
 		}
 		wg.Wait()
@@ -160,7 +156,7 @@ func BenchmarkLoopAtomic(b *testing.B) {
 			totalCounter := int64(0)
 			go func() {
 				defer wg.Done()
-				loopAtomic(loopCount, &totalCounter)
+				loopAtomic(array, &totalCounter)
 			}()
 		}
 		wg.Wait()
