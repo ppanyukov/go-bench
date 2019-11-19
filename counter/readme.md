@@ -1,4 +1,4 @@
-**TL;DR**: If I didn't do something stupid, the buffered counter implementation gives potenial speedup of 200x in hot loops across multiple goroutines, and up to 6x speedup for "local" use. The buffered version approaches "you can't do it faster" version.
+**TL;DR**: Prometheus counters use atomic primitives, which is slow. If I didn't do something stupid, the buffered counter implementation gives potenial speedup of 200x in hot loops across multiple goroutines, and up to 6x speedup for "local" use. The buffered version approaches "you can't do it faster" version.
 
 
 These tests benchmark Prometheus client library's Counter and compares with the "buffered" implementation provided here in this file.
