@@ -75,6 +75,7 @@ goos: darwin
 goarch: amd64
 pkg: github.com/ppanyukov/go-bench/counter
 
+# can't do it faster version of counter
 BenchmarkPromCounterLocalNoLock           	918099999	         1.29 ns/op
 BenchmarkPromCounterLocalNoLock-2         	1000000000	         0.650 ns/op
 BenchmarkPromCounterLocalNoLock-4         	1000000000	         0.344 ns/op
@@ -86,6 +87,7 @@ BenchmarkPromCounterLocalNoLock-96        	1000000000	         0.125 ns/op
 BenchmarkPromCounterLocalNoLock-192       	1000000000	         0.137 ns/op
 BenchmarkPromCounterLocalNoLock-256       	1000000000	         0.146 ns/op
 
+# vanilla Prometheus counter: one for each goroutine
 BenchmarkPromCounterLocalVanilla          	86532709	        13.5 ns/op
 BenchmarkPromCounterLocalVanilla-2        	148958888	         7.86 ns/op
 BenchmarkPromCounterLocalVanilla-4        	320491408	         3.86 ns/op
@@ -97,6 +99,7 @@ BenchmarkPromCounterLocalVanilla-96       	783802598	         1.54 ns/op
 BenchmarkPromCounterLocalVanilla-192      	627372313	         1.65 ns/op
 BenchmarkPromCounterLocalVanilla-256      	615174196	         1.81 ns/op
 
+# buffered counter: one for each goroutine
 BenchmarkPromCounterLocalBuf              	427818747	         2.61 ns/op
 BenchmarkPromCounterLocalBuf-2            	951812734	         1.40 ns/op
 BenchmarkPromCounterLocalBuf-4            	1000000000	         0.693 ns/op
@@ -108,6 +111,7 @@ BenchmarkPromCounterLocalBuf-96           	1000000000	         0.236 ns/op
 BenchmarkPromCounterLocalBuf-192          	1000000000	         0.241 ns/op
 BenchmarkPromCounterLocalBuf-256          	1000000000	         0.260 ns/op
 
+# vanilla Prometheus counter: one counter shared across all goroutines
 BenchmarkPromCounterSharedVanilla         	79626826	        13.4 ns/op
 BenchmarkPromCounterSharedVanilla-2       	25313673	        43.3 ns/op
 BenchmarkPromCounterSharedVanilla-4       	30068022	        39.4 ns/op
@@ -119,6 +123,9 @@ BenchmarkPromCounterSharedVanilla-96      	28199472	        40.4 ns/op
 BenchmarkPromCounterSharedVanilla-192     	29109798	        42.5 ns/op
 BenchmarkPromCounterSharedVanilla-256     	26449758	        42.6 ns/op
 
+# buffered counter: 
+#  - one buffered counter for each routine
+#  - counts are flushed to shared Prometheus counter periodically.
 BenchmarkPromCounterSharedBuf             	467419723	         2.54 ns/op
 BenchmarkPromCounterSharedBuf-2           	920180032	         1.45 ns/op
 BenchmarkPromCounterSharedBuf-4           	1000000000	         0.728 ns/op
