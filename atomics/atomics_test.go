@@ -1,4 +1,4 @@
-// go test -bench=. -cpu="1,2,4,8,16,64,128"
+// go test -cpu="1,2,4,8,16,24" -bench=. -benchtime=100x ./atomics
 
 /*
 These set of benchmarks are aimed to test the cost of accessing
@@ -48,7 +48,7 @@ Results on my local MBP (8x core i9 CPU, hyper-threaded)
 These show rapid degradation in performance when shared pointers get modified.
 
 */
-package go_bench
+package atomics
 
 import (
 	"math"
